@@ -1,0 +1,18 @@
+server:
+  port: ${PORT:6000}
+
+spring:
+  application:
+    name: auth
+#   config:
+#     import: "optional:configserver:"
+
+
+eureka:
+  instance:
+    hostname: serviceapigateway.herokuapp.com
+    homePageUrl: https://${eureka.instance.hostName}/
+    home-page-url-path: https://${eureka.instance.hostName}
+  client:
+    serviceUrl:
+      defaultZone: http://servicediscorvery.herokuapp.com/eureka
