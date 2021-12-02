@@ -1,10 +1,16 @@
 package com.example.authservice.controller;
 
 
+import com.example.authservice.authentication.UserPrincipal;
+import com.example.authservice.entity.Token;
+import com.example.authservice.entity.User;
+import com.example.authservice.service.TokenService;
+import com.example.authservice.service.UserService;
 import com.example.authservice.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,23 +19,45 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @CrossOrigin
 public class AuthRestController {
+	@Autowired
+	private UserService userService;
+
+	@Autowired
+	private TokenService tokenService;
 
 	@Autowired
 	private JwtUtil jwtUtil;
 
 	@PostMapping("/auth/login")
-	public ResponseEntity<String> login(@RequestBody String userName) {
-		String token = jwtUtil.generateToken(userName);
+	public ResponseEntity<?> login(@RequestBody User user) {
+		UserPrincipal userPrincipal =
+				userService.findByUsername(user.getUsername());
 
-		return new ResponseEntity<String>(token, HttpStatus.OK);
+		if (null == user || !new BCryptPasswordEncoder()
+				.matches(user.getPassword(), userPrincipal.getPassword())) {
+
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body("Account or password is not valid!");
+		}
+
+		Token token = new Token();
+		token.setToken(jwtUtil.generateToken(userPrincipal));
+
+		token.setTokenExp(jwtUtil.generateExpirationDate());
+		token.setCreatedBy(userPrincipal.getUserId());
+		tokenService.createToken(token);
+
+		return ResponseEntity.ok(token.getToken());
 	}
 
 	@PostMapping("/auth/register")
-	public ResponseEntity<String> register(@RequestBody String userName) {
+	public User register(@RequestBody User user) {
 		// Persist user to some persistent storage
+
+		user.setPassword(new BCryptPasswordEncoder().encode(user.getPassword()));
 		System.out.println("Info saved...");
 
-		return new ResponseEntity<String>("Registered", HttpStatus.OK);
-	}
+		return userService.createUser(user);
 
+	}
 }
