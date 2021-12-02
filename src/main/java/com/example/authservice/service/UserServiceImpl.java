@@ -29,13 +29,13 @@ public class UserServiceImpl implements UserService{
 
             Set<String> authorities = new HashSet<>();
 
-//            if (null != user.getRoles())
-//
-//                user.getRoles().forEach(r -> {
-//                    authorities.add(r.getRoleKey());
-//                    r.getPermissions().forEach(
-//                            p -> authorities.add(p.getPermissionKey()));
-//                });
+            if (null != user.getRoles())
+
+                user.getRoles().forEach(r -> {
+                    authorities.add(r.getRoleKey());
+                    r.getPermissions().forEach(
+                            p -> authorities.add(p.getPermissionKey()));
+                });
 
             userPrincipal.setUserId(user.getId());
             userPrincipal.setUsername(user.getUsername());

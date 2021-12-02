@@ -28,8 +28,16 @@ public class AuthRestController {
 	@Autowired
 	private JwtUtil jwtUtil;
 
+	@PostMapping("/register")
+	public User register(@RequestBody User user){
+		user.setPassword(new BCryptPasswordEncoder().encode(user.getPassword()));
+
+		return userService.createUser(user);
+	}
+
 	@PostMapping("/login")
-	public ResponseEntity<?> login(@RequestBody User user) {
+	public ResponseEntity<?> login(@RequestBody User user){
+
 		UserPrincipal userPrincipal =
 				userService.findByUsername(user.getUsername());
 
@@ -48,16 +56,5 @@ public class AuthRestController {
 		tokenService.createToken(token);
 
 		return ResponseEntity.ok(token.getToken());
-	}
-
-	@PostMapping("/register")
-	public User register(@RequestBody User user) {
-		// Persist user to some persistent storage
-
-		user.setPassword(new BCryptPasswordEncoder().encode(user.getPassword()));
-		System.out.println("Info saved...");
-
-		return userService.createUser(user);
-
 	}
 }
