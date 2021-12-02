@@ -2,97 +2,56 @@ package com.example.authservice.util;
 
 
 
-import com.example.authservice.authentication.UserPrincipal;
 import com.example.authservice.exception.JwtTokenMalformedException;
 import com.example.authservice.exception.JwtTokenMissingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.*;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
 import io.jsonwebtoken.*;
-import net.minidev.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.text.ParseException;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
 
-	private static Logger logger = LoggerFactory.getLogger(JwtUtil.class);
-	private static final String USER = "len";
-	private static final String SECRET = "the secret length must be at least 256 bits" +
-			" please no reveal!";
+	@Value("${jwt.secret}")
+	private String jwtSecret;
 
-	public String generateToken(UserPrincipal user) {
-		String token = null;
+	@Value("${jwt.token.validity}")
+	private long tokenValidity;
+
+	public Claims getClaims(final String token) {
 		try {
-			JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder();
-
-			builder.claim(USER, user);
-			builder.expirationTime(generateExpirationDate());
-			JWTClaimsSet claimsSet = builder.build();
-
-			SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
-			JWSSigner signer = new MACSigner(SECRET.getBytes());
-			signedJWT.sign(signer);
-
-			token = signedJWT.serialize();
+			Claims body = Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token).getBody();
+			return body;
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			System.out.println(e.getMessage() + " => " + e);
 		}
-		return token;
+		return null;
 	}
 
-	public Date generateExpirationDate() {
-		return new Date(System.currentTimeMillis() + 864000000);
+	public String generateToken(String id) {
+		Claims claims = Jwts.claims().setSubject(id);
+		long nowMillis = System.currentTimeMillis();
+		long expMillis = nowMillis + tokenValidity;
+		Date exp = new Date(expMillis);
+		return Jwts.builder().setClaims(claims).setIssuedAt(new Date(nowMillis)).setExpiration(exp)
+				.signWith(SignatureAlgorithm.HS512, jwtSecret).compact();
 	}
 
-
-	//--------------------getClaimsFromToken-------------------------
-	private JWTClaimsSet getClaimsFromToken(String token) {
-		JWTClaimsSet claims = null;
+	public void validateToken(final String token) throws JwtTokenMalformedException, JwtTokenMissingException {
 		try {
-			SignedJWT signedJWT = SignedJWT.parse(token);
-			JWSVerifier verifier = new MACVerifier(SECRET.getBytes());
-			if (signedJWT.verify(verifier)) {
-				claims = signedJWT.getJWTClaimsSet();
-			}
-		} catch (ParseException | JOSEException e) {
-			logger.error(e.getMessage());
+			Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token);
+		} catch (SignatureException ex) {
+			throw new JwtTokenMalformedException("Invalid JWT signature");
+		} catch (MalformedJwtException ex) {
+			throw new JwtTokenMalformedException("Invalid JWT token");
+		} catch (ExpiredJwtException ex) {
+			throw new JwtTokenMalformedException("Expired JWT token");
+		} catch (UnsupportedJwtException ex) {
+			throw new JwtTokenMalformedException("Unsupported JWT token");
+		} catch (IllegalArgumentException ex) {
+			throw new JwtTokenMissingException("JWT claims string is empty.");
 		}
-		return claims;
-	}
-
-	//--------------------getUserFromToken-------------------------
-	public UserPrincipal getUserFromToken(String token) {
-		UserPrincipal user = null;
-		try {
-			JWTClaimsSet claims = getClaimsFromToken(token);
-			if (claims != null && isTokenExpired(claims)) {
-				JSONObject jsonObject = (JSONObject) claims.getClaim(USER);
-				user = new ObjectMapper()
-						.readValue(jsonObject.toJSONString(), UserPrincipal.class);
-			}
-		} catch (Exception e) {
-			logger.error(e.getMessage());
-		}
-		return user;
-	}
-
-	//--------------------getExpirationDateFromToken-------------------------
-	private Date getExpirationDateFromToken(JWTClaimsSet claims) {
-		return claims != null ? claims.getExpirationTime() : new Date();
-	}
-
-	//--------------------isTokenExpired-------------------------
-	private boolean isTokenExpired(JWTClaimsSet claims) {
-		return getExpirationDateFromToken(claims).after(new Date());
 	}
 
 }
