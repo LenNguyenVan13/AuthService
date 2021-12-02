@@ -28,7 +28,7 @@ public class AuthRestController {
 	@Autowired
 	private JwtUtil jwtUtil;
 
-	@PostMapping("/auth/login")
+	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody User user) {
 		UserPrincipal userPrincipal =
 				userService.findByUsername(user.getUsername());
@@ -50,7 +50,7 @@ public class AuthRestController {
 		return ResponseEntity.ok(token.getToken());
 	}
 
-	@PostMapping("/auth/register")
+	@PostMapping("/register")
 	public User register(@RequestBody User user) {
 		// Persist user to some persistent storage
 
