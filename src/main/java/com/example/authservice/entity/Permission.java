@@ -11,7 +11,7 @@ import javax.persistence.Table;
 @Table(name = "permission")
 @Getter
 @Setter
-public class Permission extends com.example.springboot_jwt_lennguyenvan.entity.BaseEntity {
+public class Permission extends BaseEntity {
 
     private String permissionName;
     private String permissionKey;
