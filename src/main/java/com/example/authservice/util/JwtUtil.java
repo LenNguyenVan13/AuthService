@@ -1,7 +1,5 @@
 package com.example.authservice.util;
 
-
-
 import com.example.authservice.exception.JwtTokenMalformedException;
 import com.example.authservice.exception.JwtTokenMissingException;
 import io.jsonwebtoken.*;
